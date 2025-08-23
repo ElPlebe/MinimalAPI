@@ -1,0 +1,20 @@
+### List
+GET http://localhost:5000/api/v1/todos
+
+### Create
+POST http://localhost:5000/api/v1/todos
+Content-Type: application/json
+
+{ "title": "Buy milk" }
+
+### Get by id (replace)
+GET http://localhost:5000/api/v1/todos/{{id}}
+
+### Update (replace id)
+PUT http://localhost:5000/api/v1/todos/{{id}}
+Content-Type: application/json
+
+{ "title": "Buy milk and bread", "done": true }
+
+### Delete (replace id)
+DELETE http://localhost:5000/api/v1/todos/{{id}}
