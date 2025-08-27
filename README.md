@@ -21,7 +21,7 @@ dotnet run --project src/Api/Api.csproj
 ## Try requests (REST Client/VS Code)
 Open `requests/api.http` and send requests, or use curl:
 ```bash
-curl http://localhost:5000/api/v1/todos
+curl http://localhost:5000/api/v1/examples
 ```
 
 ## Run tests
