@@ -82,8 +82,8 @@ public class MinimalApiTests : IClassFixture<WebApplicationFactory<Program>>
         var locationB = b.Headers.Location!;
         var entityB = await _client.GetFromJsonAsync<ExampleDto>(locationB);
 
-        // Intentar cambiar B a "A" → 409
-        var update = await _client.PutAsJsonAsync($"{BaseRoute}/{entityB!.Id}", new { title = "A", done = false });
+		// Attempt to change B to “A” → 409
+		var update = await _client.PutAsJsonAsync($"{BaseRoute}/{entityB!.Id}", new { title = "A", done = false });
         Assert.Equal(HttpStatusCode.Conflict, update.StatusCode);
     }
 
@@ -93,12 +93,12 @@ public class MinimalApiTests : IClassFixture<WebApplicationFactory<Program>>
 		var create = await _client.PostAsJsonAsync(BaseRoute, new { title = "To Delete" });
 		Assert.Equal(HttpStatusCode.Created, create.StatusCode);
 
-		// Obtén el entity para tener el Id con certeza
+		// Get the entity to obtain the ID with certainty.
 		var location = create.Headers.Location!;
 		var entity = await _client.GetFromJsonAsync<ExampleDto>(location);
 		Assert.NotNull(entity);
 
-		// Construye la URL del DELETE explícitamente
+		// Build the DELETE URL explicitly
 		var del = await _client.DeleteAsync($"{BaseRoute}/{entity!.Id}");
 		Assert.Equal(HttpStatusCode.NoContent, del.StatusCode);
 

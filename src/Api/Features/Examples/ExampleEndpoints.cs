@@ -22,13 +22,13 @@ public static class ExampleEndpoints
 			var ex = await repo.GetAsync(id);
 			return ex is null ? TypedResults.NotFound() : TypedResults.Ok(ex);
 		})
-		.WithName("GetExample") // <-- Necesario para CreatedAtRoute
+		.WithName("GetExample")
 		.Produces<Example>(StatusCodes.Status200OK)
 		.ProducesProblem(StatusCodes.Status404NotFound);
 
 		// POST /api/v1/examples
 		examples.MapPost("/", async Task<Results<
-				CreatedAtRoute<Example>,               // <-- cambia a CreatedAtRoute<Example>
+				CreatedAtRoute<Example>,       
 				BadRequest<ErrorResponse>,
 				Conflict<ErrorResponse>,
 				ValidationProblem
@@ -37,10 +37,8 @@ public static class ExampleEndpoints
 		{
 			try
 			{
-				// el repo ya hace Trim + ThrowIfNullOrWhiteSpace
 				var created = await repo.AddAsync(req.Title);
 
-				// Enlaza Location al endpoint "GetExample"
 				return TypedResults.CreatedAtRoute(
 					routeName: "GetExample",
 					routeValues: new { id = created.Id },
@@ -75,17 +73,17 @@ public static class ExampleEndpoints
 		{
 			try
 			{
-				var updated = await repo.UpdateAsync(id, req.Title, req.Done); // repo ya hace Trim + validación
+				var updated = await repo.UpdateAsync(id, req.Title, req.Done);
 				return updated ? TypedResults.NoContent() : TypedResults.NotFound();
 			}
 			catch (ArgumentException ex)
 			{
-				// 400 por título nulo/vacío/espacios
+				// 400 per invalid/empty title/spaces
 				return TypedResults.BadRequest(new ErrorResponse(ex.Message));
 			}
 			catch (InvalidOperationException ex)
 			{
-				// 409 por título duplicado (distinto id)
+				// 409 for duplicate title (different ID)
 				return TypedResults.Conflict(new ErrorResponse(ex.Message));
 			}
 		})
