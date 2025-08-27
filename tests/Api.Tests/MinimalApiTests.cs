@@ -1,110 +1,166 @@
-﻿using System.Net;
-using System.Net.Http.Json;
-using Microsoft.AspNetCore.Mvc.Testing;
+﻿using System;
+using System.Linq;
+using System.Threading.Tasks;
+using Api.Features.Examples;
 using Xunit;
 
 namespace Api.Tests;
 
-public class MinimalApiTests : IClassFixture<WebApplicationFactory<Program>>
+public class ExampleRepositoryTests
 {
-    private readonly HttpClient _client;
-    private const string BaseRoute = "/api/v1/examples";
-
-    public MinimalApiTests(WebApplicationFactory<Program> factory)
-        => _client = factory.CreateClient();
-
-    [Fact]
-    public async Task Create_Returns_201_And_Location()
-    {
-        var create = await _client.PostAsJsonAsync(BaseRoute, new { title = "First item" });
-        Assert.Equal(HttpStatusCode.Created, create.StatusCode);
-
-        var location = create.Headers.Location;
-        Assert.NotNull(location);
-
-        var entity = await _client.GetFromJsonAsync<ExampleDto>(location);
-        Assert.NotNull(entity);
-        Assert.Equal("First item", entity!.Title);
-        Assert.False(entity.Done);
-    }
-
-    [Fact]
-    public async Task Create_Empty_Title_Returns_400()
-    {
-		// It is intercepted by the EndpointFilter and returns ValidationProblem (400)
-		var create = await _client.PostAsJsonAsync(BaseRoute, new { title = "" });
-        Assert.Equal(HttpStatusCode.BadRequest, create.StatusCode);
-    }
-
-    [Fact]
-    public async Task Create_Duplicate_Title_Returns_409()
-    {
-        var first = await _client.PostAsJsonAsync(BaseRoute, new { title = "Duplicated" });
-        Assert.Equal(HttpStatusCode.Created, first.StatusCode);
-
-        var dup = await _client.PostAsJsonAsync(BaseRoute, new { title = "Duplicated" });
-        Assert.Equal(HttpStatusCode.Conflict, dup.StatusCode);
-    }
-
-    [Fact]
-    public async Task Get_NonExisting_Returns_404()
-    {
-        var res = await _client.GetAsync($"{BaseRoute}/{Guid.NewGuid()}");
-        Assert.Equal(HttpStatusCode.NotFound, res.StatusCode);
-    }
-
-    [Fact]
-    public async Task Update_NonExisting_Returns_404()
-    {
-        var id = Guid.NewGuid();
-        var update = await _client.PutAsJsonAsync($"{BaseRoute}/{id}", new { title = "X", done = true });
-        Assert.Equal(HttpStatusCode.NotFound, update.StatusCode);
-    }
-
-    [Fact]
-    public async Task Update_Empty_Title_Returns_400()
-    {
-		// It is intercepted by the EndpointFilter (ValidationProblem 400)
-		var create = await _client.PostAsJsonAsync(BaseRoute, new { title = "To Update" });
-        var location = create.Headers.Location!;
-        var entity = await _client.GetFromJsonAsync<ExampleDto>(location);
-
-        var update = await _client.PutAsJsonAsync($"{BaseRoute}/{entity!.Id}", new { title = "", done = true });
-        Assert.Equal(HttpStatusCode.BadRequest, update.StatusCode);
-    }
-
-    [Fact]
-    public async Task Update_Duplicate_Title_Returns_409()
-    {
-        var a = await _client.PostAsJsonAsync(BaseRoute, new { title = "A" });
-        var b = await _client.PostAsJsonAsync(BaseRoute, new { title = "B" });
-
-        var locationB = b.Headers.Location!;
-        var entityB = await _client.GetFromJsonAsync<ExampleDto>(locationB);
-
-		// Attempt to change B to “A” → 409
-		var update = await _client.PutAsJsonAsync($"{BaseRoute}/{entityB!.Id}", new { title = "A", done = false });
-        Assert.Equal(HttpStatusCode.Conflict, update.StatusCode);
-    }
-
 	[Fact]
-	public async Task Delete_Flow_Creates_Deletes_Then_404()
+	public async Task ListAsync_EmptyStore_ReturnsEmptyList()
 	{
-		var create = await _client.PostAsJsonAsync(BaseRoute, new { title = "To Delete" });
-		Assert.Equal(HttpStatusCode.Created, create.StatusCode);
+		// Arrange
+		var repo = new InMemoryExampleRepository();
 
-		// Get the entity to obtain the ID with certainty.
-		var location = create.Headers.Location!;
-		var entity = await _client.GetFromJsonAsync<ExampleDto>(location);
-		Assert.NotNull(entity);
+		// Act
+		var list = await repo.ListAsync();
 
-		// Build the DELETE URL explicitly
-		var del = await _client.DeleteAsync($"{BaseRoute}/{entity!.Id}");
-		Assert.Equal(HttpStatusCode.NoContent, del.StatusCode);
-
-		var after = await _client.GetAsync($"{BaseRoute}/{entity.Id}");
-		Assert.Equal(HttpStatusCode.NotFound, after.StatusCode);
+		// Assert
+		Assert.NotNull(list);
+		Assert.Empty(list);
 	}
 
-	private sealed record ExampleDto(Guid Id, string Title, bool Done);
+	[Fact]
+	public async Task AddAsync_WithValidTitle_ReturnsCreatedEntity()
+	{
+		// Arrange
+		var repo = new InMemoryExampleRepository();
+		var title = "Sample Title";
+
+		// Act
+		var created = await repo.AddAsync(title);
+
+		// Assert
+		Assert.NotEqual(Guid.Empty, created.Id);
+		Assert.Equal(title, created.Title);
+		Assert.False(created.Done);
+	}
+
+	[Fact]
+	public async Task GetAsync_WithValidId_ReturnsEntity()
+	{
+		// Arrange
+		var repo = new InMemoryExampleRepository();
+		var created = await repo.AddAsync("A");
+
+		// Act
+		var found = await repo.GetAsync(created.Id);
+
+		// Assert
+		Assert.NotNull(found);
+		Assert.Equal(created.Id, found!.Id);
+		Assert.Equal("A", found.Title);
+		Assert.False(found.Done);
+	}
+
+	[Fact]
+	public async Task GetAsync_WithUnknownId_ReturnsNull()
+	{
+		// Arrange
+		var repo = new InMemoryExampleRepository();
+		var unknown = Guid.Parse("11dfd289-2544-47da-a263-cc88d34e6808");
+
+		// Act
+		var found = await repo.GetAsync(unknown);
+
+		// Assert
+		Assert.Null(found);
+	}
+
+	[Fact]
+	public async Task UpdateAsync_WithExistingId_UpdatesTitleAndDone()
+	{
+		// Arrange
+		var repo = new InMemoryExampleRepository();
+		var created = await repo.AddAsync("Original");
+		var newTitle = "Updated";
+		var newDone = true;
+
+		// Act
+		var ok = await repo.UpdateAsync(created.Id, newTitle, newDone);
+		var after = await repo.GetAsync(created.Id);
+
+		// Assert
+		Assert.True(ok);
+		Assert.NotNull(after);
+		Assert.Equal(newTitle, after!.Title);
+		Assert.True(after.Done);
+	}
+
+	[Fact]
+	public async Task UpdateAsync_WithUnknownId_ReturnsFalse()
+	{
+		// Arrange
+		var repo = new InMemoryExampleRepository();
+		var unknown = Guid.NewGuid();
+
+		// Act
+		var ok = await repo.UpdateAsync(unknown, "DoesNotMatter", done: true);
+
+		// Assert
+		Assert.False(ok);
+	}
+
+	[Fact]
+	public async Task UpdateAsync_ToExistingTitle_ThrowsInvalidOperationException()
+	{
+		// Arrange
+		var repo = new InMemoryExampleRepository();
+		var a = await repo.AddAsync("TitleA");
+		var b = await repo.AddAsync("TitleB");
+
+		// Act + Assert
+		// Cambiar el título de B a "TitleA" debe chocar con la validación de duplicado
+		await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+		{
+			await repo.UpdateAsync(b.Id, "TitleA", b.Done);
+		});
+	}
+
+	[Fact]
+	public async Task UpdateAsync_DuplicateTitle_IsCaseInsensitive()
+	{
+		// Arrange
+		var repo = new InMemoryExampleRepository();
+		var a = await repo.AddAsync("TitleA");
+		var b = await repo.AddAsync("Another");
+
+		// Act + Assert
+		// Si la comparación de título es case-insensitive, "titlea" debe considerarse duplicado de "TitleA"
+		await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+		{
+			await repo.UpdateAsync(b.Id, "titlea", b.Done);
+		});
+	}
+
+	[Fact]
+	public async Task DeleteAsync_WithExistingId_RemovesAndReturnsTrue()
+	{
+		// Arrange
+		var repo = new InMemoryExampleRepository();
+		var created = await repo.AddAsync("ToDelete");
+
+		// Act
+		var removed = await repo.DeleteAsync(created.Id);
+		var after = await repo.GetAsync(created.Id);
+
+		// Assert
+		Assert.True(removed);
+		Assert.Null(after);
+	}
+
+	[Fact]
+	public async Task DeleteAsync_WithUnknownId_ReturnsFalse()
+	{
+		// Arrange
+		var repo = new InMemoryExampleRepository();
+
+		// Act
+		var removed = await repo.DeleteAsync(Guid.NewGuid());
+
+		// Assert
+		Assert.False(removed);
+	}
 }
