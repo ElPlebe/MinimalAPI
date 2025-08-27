@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+
 namespace Api.Features.Examples;
 
 public interface IExampleRepository
@@ -11,21 +13,14 @@ public interface IExampleRepository
 
 public sealed class InMemoryExampleRepository : IExampleRepository
 {
-	private readonly Dictionary<Guid, Example> _store = new();
+	private readonly ConcurrentDictionary<Guid, Example> _store = new();
 
-	// Comparador para títulos (case-insensitive)
 	private static readonly StringComparer TitleComparer = StringComparer.OrdinalIgnoreCase;
 
-	private bool TitleExists(string title, Guid? exceptId = null)
-	{
-		foreach (var kv in _store)
-		{
-			if (exceptId.HasValue && kv.Key == exceptId.Value) continue;
-			if (TitleComparer.Equals(kv.Value.Title, title)) return true;
-		}
-
-		return false;
-	}
+	private bool TitleExists(string title, Guid? exceptId = null) =>
+	_store.Any(kv =>
+		(!exceptId.HasValue || kv.Key != exceptId.Value) &&
+		TitleComparer.Equals(kv.Value.Title, title));
 
 	public Task<Example?> GetAsync(Guid id) =>
 		Task.FromResult(_store.TryGetValue(id, out var e) ? e : null);
@@ -35,6 +30,9 @@ public sealed class InMemoryExampleRepository : IExampleRepository
 
 	public Task<Example> AddAsync(string title)
 	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(title, nameof(title));
+		title = title.Trim();
+
 		if (TitleExists(title))
 			throw new InvalidOperationException($"An example with the title '{title}' already exists.");
 
@@ -46,10 +44,12 @@ public sealed class InMemoryExampleRepository : IExampleRepository
 
 	public Task<bool> UpdateAsync(Guid id, string title, bool done)
 	{
+		ArgumentException.ThrowIfNullOrWhiteSpace(title, nameof(title));
+		title = title.Trim();
+
 		if (!_store.ContainsKey(id))
 			return Task.FromResult(false);
 
-		// Evitar colisión de título con otros registros
 		if (TitleExists(title, id))
 			throw new InvalidOperationException($"An example with the title '{title}' already exists.");
 
@@ -58,7 +58,9 @@ public sealed class InMemoryExampleRepository : IExampleRepository
 		return Task.FromResult(true);
 	}
 
-	public Task<bool> DeleteAsync(Guid id) =>
-		Task.FromResult(_store.Remove(id));
+	public Task<bool> DeleteAsync(Guid id)
+	{
+		var removed = _store.TryRemove(id, out _);
+		return Task.FromResult(removed);
+	}
 }
-//Change only for create a PR....
