@@ -28,6 +28,7 @@ public sealed class InMemoryExampleRepository : IExampleRepository
 
 		var ex = new Example(Guid.NewGuid(), title.Trim(), Done: false);
 		_store[ex.Id] = ex;
+
 		return Task.FromResult(ex);
 	}
 
@@ -40,6 +41,7 @@ public sealed class InMemoryExampleRepository : IExampleRepository
 			throw new InvalidOperationException($"An example with the title '{normalized}' already exists.");
 
 		_store[id] = new Example(id, normalized, done);
+
 		return Task.FromResult(true);
 	}
 

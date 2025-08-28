@@ -1,7 +1,6 @@
 namespace Api.Features.Examples;
 
 using Microsoft.AspNetCore.Http.HttpResults;
-using Microsoft.AspNetCore.Mvc;
 
 public static class ExampleEndpoints
 {
@@ -21,6 +20,7 @@ public static class ExampleEndpoints
 		examples.MapGet("/{id:guid}", async Task<Results<Ok<Example>, NotFound>> (Guid id, IExampleRepository repo) =>
 		{
 			var ex = await repo.GetAsync(id);
+
 			return ex is not null ? TypedResults.Ok(ex) : TypedResults.NotFound();
 		})
 		.WithName("GetExampleById")
@@ -36,6 +36,7 @@ public static class ExampleEndpoints
 			{
 				var created = await repo.AddAsync(req.Title);
 				var location = links.GetPathByName(http, "GetExampleById", new { id = created.Id });
+
 				return TypedResults.Created(location!, created);
 			}
 			catch (InvalidOperationException ex)
@@ -58,6 +59,7 @@ public static class ExampleEndpoints
 			try
 			{
 				var ok = await repo.UpdateAsync(id, req.Title, req.Done);
+
 				return ok ? TypedResults.NoContent() : TypedResults.NotFound();
 			}
 			catch (InvalidOperationException ex)
@@ -79,6 +81,7 @@ public static class ExampleEndpoints
 			Guid id, IExampleRepository repo) =>
 		{
 			var removed = await repo.DeleteAsync(id);
+
 			return removed ? TypedResults.NoContent() : TypedResults.NotFound();
 		})
 		.WithName("DeleteExample")
