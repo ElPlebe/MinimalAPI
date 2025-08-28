@@ -408,6 +408,7 @@ C:\Users\carl0\Downloads\minimal-apis-with-tests\minimal-apis-dotnet\tests\Api.T
 C:\Users\carl0\Downloads\minimal-apis-with-tests\minimal-apis-dotnet\tests\Api.Tests\obj\Debug\net8.0\Api.Tests.AssemblyInfoInputs.cache
 C:\Users\carl0\Downloads\minimal-apis-with-tests\minimal-apis-dotnet\tests\Api.Tests\obj\Debug\net8.0\Api.Tests.AssemblyInfo.cs
 C:\Users\carl0\Downloads\minimal-apis-with-tests\minimal-apis-dotnet\tests\Api.Tests\obj\Debug\net8.0\Api.Tests.csproj.CoreCompileInputs.cache
+C:\Users\carl0\Downloads\minimal-apis-with-tests\minimal-apis-dotnet\tests\Api.Tests\obj\Debug\net8.0\Api.Tests.sourcelink.json
 C:\Users\carl0\Downloads\minimal-apis-with-tests\minimal-apis-dotnet\tests\Api.Tests\obj\Debug\net8.0\Api.Tests.csproj.Up2Date
 C:\Users\carl0\Downloads\minimal-apis-with-tests\minimal-apis-dotnet\tests\Api.Tests\obj\Debug\net8.0\Api.Tests.dll
 C:\Users\carl0\Downloads\minimal-apis-with-tests\minimal-apis-dotnet\tests\Api.Tests\obj\Debug\net8.0\refint\Api.Tests.dll

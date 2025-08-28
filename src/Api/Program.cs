@@ -1,11 +1,10 @@
 using Api.Features.Examples;
-using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Services
-builder.Services.AddProblemDetails();     // Consistent RFC 7807 error payloads
+builder.Services.AddProblemDetails();              // RFC 7807
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -16,12 +15,13 @@ builder.Services.AddSingleton<IExampleRepository, InMemoryExampleRepository>();
 
 var app = builder.Build();
 
-// Middleware
-app.UseExceptionHandler();    // Uses ProblemDetails by default when registered
-app.UseStatusCodePages();
+if (app.Environment.IsDevelopment())
+{
+	app.UseSwagger();
+	app.UseSwaggerUI();
+}
 
-app.UseSwagger();
-app.UseSwaggerUI();
+app.UseExceptionHandler(); // integrate ProblemDetails with the standard middleware
 
 // API v1 group
 var v1 = app.MapGroup("/api/v1").WithOpenApi();
@@ -30,5 +30,5 @@ v1.MapExampleEndpoints();
 
 app.Run();
 
-// Needed for WebApplicationFactory<Program> in tests
+// Required for WebApplicationFactory<Program> in tests
 public partial class Program { }
